@@ -297,8 +297,10 @@ final class DocumentReplicationsCallbackMessage {
 final class ReplicatorBindings extends Bindings {
   ReplicatorBindings(super.libraries);
 
-  late final _finalizer = NativeFinalizer(
-    cblitedart.addresses.CBLDart_CBLReplicator_Release.cast(),
+  // Releasing a running replicator takes its database's lock: see
+  // _refCountedFinalizer in base.dart.
+  late final _finalizer = Finalizer<Pointer<cblite_lib.CBLReplicator>>(
+    (replicator) => cblitedart.CBLDart_CBLReplicator_Release(replicator.cast()),
   );
 
   Pointer<cblite_lib.CBLEndpoint> createEndpointWithUrl(String url) =>
@@ -359,7 +361,7 @@ final class ReplicatorBindings extends Bindings {
     Finalizable object,
     Pointer<cblite_lib.CBLReplicator> replicator,
   ) {
-    _finalizer.attach(object, replicator.cast());
+    _finalizer.attach(object, replicator);
   }
 
   void start(

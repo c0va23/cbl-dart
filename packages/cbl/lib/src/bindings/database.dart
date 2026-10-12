@@ -73,8 +73,10 @@ enum CBLMaintenanceType {
 final class DatabaseBindings extends Bindings {
   DatabaseBindings(super.libraries);
 
-  late final _finalizer = NativeFinalizer(
-    cblitedart.addresses.CBLDart_CBLDatabase_Release.cast(),
+  // Releasing closes the database, which waits for its transactions: see
+  // _refCountedFinalizer in base.dart.
+  late final _finalizer = Finalizer<Pointer<cblite_lib.CBLDatabase>>(
+    (db) => cblitedart.CBLDart_CBLDatabase_Release(db.cast()),
   );
 
   CBLEncryptionKey encryptionKeyFromPassword(String password) =>
@@ -148,7 +150,7 @@ final class DatabaseBindings extends Bindings {
     Finalizable object,
     Pointer<cblite_lib.CBLDatabase> db,
   ) {
-    _finalizer.attach(object, db.cast());
+    _finalizer.attach(object, db);
   }
 
   void close(Pointer<cblite_lib.CBLDatabase> db) {

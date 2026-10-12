@@ -456,9 +456,13 @@ final class BaseBindings extends Bindings {
 
   late final isolateId = cblitedart.CBLDart_AllocateIsolateId();
 
-  late final _refCountedFinalizer = NativeFinalizer(
-    cblite.addresses.CBL_Release.cast(),
-  );
+  // A Finalizer, not a NativeFinalizer: its callback runs on this isolate's
+  // event loop after a garbage collection, never inside one. A release inside
+  // the collection runs with every isolate stopped, and a release that waits
+  // for a database connection's lock can then wait for a stopped isolate
+  // forever.
+  late final _refCountedFinalizer =
+      Finalizer<Pointer<cblite_lib.CBLRefCounted>>(cblite.CBL_Release);
 
   bool get vectorSearchLibraryAvailable =>
       libraries.vectorSearchLibraryPath != null;
@@ -540,7 +544,7 @@ final class BaseBindings extends Bindings {
     Finalizable object,
     Pointer<cblite_lib.CBLRefCounted> refCounted,
   ) {
-    _refCountedFinalizer.attach(object, refCounted.cast());
+    _refCountedFinalizer.attach(object, refCounted);
   }
 
   void retainRefCounted(Pointer<cblite_lib.CBLRefCounted> refCounted) {
